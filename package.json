@@ -1,0 +1,23 @@
+{
+  "name": "pitchpilot-mvp",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-router-dom": "^7.6.0",
+    "pptxgenjs": "^3.12.0",
+    "pdfjs-dist": "^4.10.38",
+    "lucide-react": "^0.511.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.5.2",
+    "vite": "^6.3.0"
+  }
+}
