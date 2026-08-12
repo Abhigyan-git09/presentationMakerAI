@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Sparkles, Upload, FileText, Presentation, MessageSquare, HelpCircle } from 'lucide-react'
 import { generateOutline } from '../services/ai.js'
 import { extractTextFromFile } from '../services/pdfService.js'
+import UserMenu from '../components/UserMenu.jsx'
 
 export default function InputScreen() {
   const navigate = useNavigate()
@@ -71,6 +72,7 @@ export default function InputScreen() {
           <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
             AI Presentation Builder
           </span>
+          <UserMenu />
         </div>
       </nav>
 

@@ -2,10 +2,12 @@ import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import {
   Download, ArrowLeft, Send, ChevronDown, ChevronRight,
-  HelpCircle, Eye, FileText, Sparkles, Image
+  HelpCircle, ExternalLink, FileText, Sparkles, Image
 } from 'lucide-react'
 import { editSlide } from '../services/ai.js'
+import { addPhotosToPresentation, findPhoto } from '../services/imageService.js'
 import { exportToPPTX } from '../services/pptxService.js'
+import UserMenu from '../components/UserMenu.jsx'
 
 export default function WorkspaceScreen() {
   const navigate = useNavigate()
@@ -14,6 +16,7 @@ export default function WorkspaceScreen() {
   const [editPrompt, setEditPrompt] = useState('')
   const [editing, setEditing] = useState(false)
   const [exporting, setExporting] = useState(false)
+  const [loadingPhotos, setLoadingPhotos] = useState(false)
   const [expandedQA, setExpandedQA] = useState(new Set())
   const [error, setError] = useState('')
 
@@ -23,7 +26,21 @@ export default function WorkspaceScreen() {
       navigate('/')
       return
     }
-    setPresentation(JSON.parse(stored))
+    const savedPresentation = JSON.parse(stored)
+    setPresentation(savedPresentation)
+
+    if (savedPresentation.slides.some(slide => !slide.photo)) {
+      setLoadingPhotos(true)
+      addPhotosToPresentation(savedPresentation)
+        .then(enrichedPresentation => {
+          setPresentation(enrichedPresentation)
+          sessionStorage.setItem(
+            'pitchpilot_presentation',
+            JSON.stringify(enrichedPresentation)
+          )
+        })
+        .finally(() => setLoadingPhotos(false))
+    }
   }, [navigate])
 
   const handleEditSlide = async () => {
@@ -34,9 +51,14 @@ export default function WorkspaceScreen() {
     try {
       const currentSlide = presentation.slides[activeSlide]
       const updated = await editSlide(currentSlide, editPrompt)
+      const searchChanged = updated.photoSearchQuery &&
+        updated.photoSearchQuery !== currentSlide.photoSearchQuery
+      const photo = searchChanged
+        ? await findPhoto(updated.photoSearchQuery)
+        : currentSlide.photo
 
       const newSlides = [...presentation.slides]
-      newSlides[activeSlide] = updated
+      newSlides[activeSlide] = { ...currentSlide, ...updated, photo }
       const newPresentation = { ...presentation, slides: newSlides }
       setPresentation(newPresentation)
       sessionStorage.setItem('pitchpilot_presentation', JSON.stringify(newPresentation))
@@ -103,6 +125,7 @@ export default function WorkspaceScreen() {
             <Download size={16} />
             {exporting ? 'Exporting...' : 'Export PPTX'}
           </button>
+          <UserMenu />
         </div>
       </nav>
 
@@ -131,9 +154,32 @@ export default function WorkspaceScreen() {
                   <Sparkles size={12} />
                   Slide {activeSlide + 1} of {presentation.slides.length}
                 </span>
+                {loadingPhotos && (
+                  <span className="badge badge-visual">Finding photos...</span>
+                )}
               </div>
 
               <h2>{slide.title}</h2>
+
+              {/* Automatically sourced photo */}
+              {slide.photo && (
+                <figure className="slide-photo">
+                  <img src={slide.photo.url} alt={slide.photo.alt} />
+                  <figcaption>
+                    <span>
+                      Photo by {slide.photo.creator} · {slide.photo.license}
+                    </span>
+                    <a
+                      href={slide.photo.sourceUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      aria-label={`View photo source for ${slide.photo.title}`}
+                    >
+                      Source <ExternalLink size={12} />
+                    </a>
+                  </figcaption>
+                </figure>
+              )}
 
               {/* Visual Recommendation */}
               {slide.visualRecommendation && (

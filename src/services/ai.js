@@ -4,6 +4,8 @@
  * full presentation generation, and per-slide editing.
  */
 
+import { addPhotosToPresentation } from './imageService.js';
+
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
 const MODEL = import.meta.env.VITE_GEMINI_MODEL || 'gemini-3.6-flash';
 const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
@@ -107,7 +109,8 @@ IMPORTANT: Return ONLY valid JSON in this exact format:
       "title": "Slide Title",
       "keyPoints": ["Key point 1", "Key point 2", "Key point 3"],
       "speakerNotes": "Detailed speaker notes for this slide. Should be 2-3 sentences that help the presenter deliver this slide effectively.",
-      "visualRecommendation": "Describe the ideal visual for this slide, e.g., 'Bar chart comparing market share of top 5 competitors' or 'Full-bleed image of a modern data center'"
+      "visualRecommendation": "Describe the ideal visual for this slide, e.g., 'Bar chart comparing market share of top 5 competitors' or 'Full-bleed image of a modern data center'",
+      "photoSearchQuery": "A short, concrete English search phrase for a relevant real-world photograph, without words like photo or image"
     }
   ],
   "audienceQuestions": [
@@ -122,12 +125,14 @@ Guidelines:
 - For each slide, provide 3-5 key points that are concise and impactful.
 - Speaker notes should be conversational and help the presenter deliver naturally.
 - Visual recommendations should be specific and actionable (not vague like "an image").
+- Photo search queries should describe visible people, places, or objects and avoid abstract business jargon.
 - Generate 4-6 diverse audience questions covering different aspects of the presentation.
 - Suggested answers should be thorough but concise.`;
 
   const prompt = `Generate full presentation content for this outline:\n${JSON.stringify(outline.slides, null, 2)}`;
 
-  return callGemini(prompt, systemInstruction);
+  const presentation = await callGemini(prompt, systemInstruction);
+  return addPhotosToPresentation(presentation);
 }
 
 /**
@@ -141,7 +146,8 @@ IMPORTANT: Return ONLY valid JSON in this exact format:
   "title": "Slide Title",
   "keyPoints": ["Key point 1", "Key point 2", "Key point 3"],
   "speakerNotes": "Updated speaker notes...",
-  "visualRecommendation": "Updated visual recommendation..."
+  "visualRecommendation": "Updated visual recommendation...",
+  "photoSearchQuery": "Updated search phrase for a relevant real-world photograph"
 }
 
 Maintain the existing structure but apply the requested changes precisely.`;

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { ArrowUp, ArrowDown, Trash2, Sparkles, ArrowRight, ArrowLeft, RefreshCw } from 'lucide-react'
 import { refineOutline, generateFullPresentation } from '../services/ai.js'
+import UserMenu from '../components/UserMenu.jsx'
 
 export default function LayoutPreviewScreen() {
   const navigate = useNavigate()
@@ -94,6 +95,7 @@ export default function LayoutPreviewScreen() {
             <ArrowLeft size={16} />
             Back
           </Link>
+          <UserMenu />
         </div>
       </nav>
 
