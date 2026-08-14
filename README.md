@@ -50,22 +50,6 @@ Every account has a private library for reopening, renaming, updating, exporting
 - Client-side `.pptx` export with the selected template, theme, text density, images, and photo credits
 - Optional, account-scoped presentation library backed by Supabase Postgres and Row Level Security
 
-## Architecture
-
-```mermaid
-flowchart LR
-    U["Authenticated user"] --> SPA["React and Vite SPA"]
-    SPA --> AUTH["Supabase Auth"]
-    SPA --> DB["Supabase Postgres with RLS"]
-    SPA --> API["Vercel Function: /api/generate"]
-    API -->|"Validate Supabase access token"| AUTH
-    API -->|"Server-side API key"| GEMINI["Gemini API"]
-    SPA --> COMMONS["Wikimedia Commons API"]
-    SPA --> EXPORT["PptxGenJS export"]
-```
-
-The browser owns the interactive workflow and stores the active, unsaved deck in `sessionStorage`. Supabase manages durable identity and user-owned library records. The Vercel function validates the current Supabase access token before forwarding a generation request to Gemini, so the Gemini API key is never shipped in the client bundle.
-
 ## Technology stack
 
 | Layer | Technology | Responsibility |
