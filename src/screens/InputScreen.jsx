@@ -4,6 +4,19 @@ import { Sparkles, Upload, FileText, Presentation, MessageSquare, HelpCircle } f
 import { generateOutline } from '../services/ai.js'
 import { extractTextFromFile } from '../services/pdfService.js'
 import UserMenu from '../components/UserMenu.jsx'
+import PresentationOptions from '../components/PresentationOptions.jsx'
+import {
+  DEFAULT_PRESENTATION_PREFERENCES,
+  normalizePreferences
+} from '../config/presentationOptions.js'
+
+function loadPreferences() {
+  try {
+    return normalizePreferences(JSON.parse(sessionStorage.getItem('pitchpilot_preferences') || '{}'))
+  } catch {
+    return DEFAULT_PRESENTATION_PREFERENCES
+  }
+}
 
 export default function InputScreen() {
   const navigate = useNavigate()
@@ -13,16 +26,29 @@ export default function InputScreen() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [dragover, setDragover] = useState(false)
+  const [preferences, setPreferences] = useState(loadPreferences)
+
+  const selectFile = (nextFile) => {
+    if (!nextFile) return
+    const extension = nextFile.name.split('.').pop()?.toLowerCase()
+    if (!['pdf', 'txt'].includes(extension)) {
+      setFile(null)
+      setError('Please upload a PDF or TXT file.')
+      return
+    }
+    setError('')
+    setFile(nextFile)
+  }
 
   const handleFileDrop = (e) => {
     e.preventDefault()
     setDragover(false)
     const droppedFile = e.dataTransfer.files[0]
-    if (droppedFile) setFile(droppedFile)
+    selectFile(droppedFile)
   }
 
   const handleFileSelect = (e) => {
-    if (e.target.files[0]) setFile(e.target.files[0])
+    selectFile(e.target.files[0])
   }
 
   const handleGenerate = async () => {
@@ -39,11 +65,12 @@ export default function InputScreen() {
         documentText = await extractTextFromFile(file)
       }
 
-      const outline = await generateOutline(prompt, documentText)
+      const outline = await generateOutline(prompt, documentText, preferences)
 
       // Store in sessionStorage and navigate
       sessionStorage.setItem('pitchpilot_outline', JSON.stringify(outline))
       sessionStorage.setItem('pitchpilot_prompt', prompt)
+      sessionStorage.setItem('pitchpilot_preferences', JSON.stringify(preferences))
       navigate('/layout')
     } catch (err) {
       setError(err.message)
@@ -98,6 +125,11 @@ export default function InputScreen() {
               onChange={(e) => setPrompt(e.target.value)}
               rows={5}
               style={{ marginBottom: '1rem' }}
+            />
+
+            <PresentationOptions
+              value={preferences}
+              onChange={setPreferences}
             />
 
             {/* Upload Zone */}

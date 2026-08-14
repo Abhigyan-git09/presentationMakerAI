@@ -3,6 +3,19 @@ import { useNavigate, Link } from 'react-router-dom'
 import { ArrowUp, ArrowDown, Trash2, Sparkles, ArrowRight, ArrowLeft, RefreshCw } from 'lucide-react'
 import { refineOutline, generateFullPresentation } from '../services/ai.js'
 import UserMenu from '../components/UserMenu.jsx'
+import PresentationOptions from '../components/PresentationOptions.jsx'
+import {
+  DEFAULT_PRESENTATION_PREFERENCES,
+  normalizePreferences
+} from '../config/presentationOptions.js'
+
+function loadPreferences() {
+  try {
+    return normalizePreferences(JSON.parse(sessionStorage.getItem('pitchpilot_preferences') || '{}'))
+  } catch {
+    return DEFAULT_PRESENTATION_PREFERENCES
+  }
+}
 
 export default function LayoutPreviewScreen() {
   const navigate = useNavigate()
@@ -11,6 +24,7 @@ export default function LayoutPreviewScreen() {
   const [loading, setLoading] = useState(false)
   const [loadingMsg, setLoadingMsg] = useState('')
   const [error, setError] = useState('')
+  const [preferences, setPreferences] = useState(loadPreferences)
 
   useEffect(() => {
     const stored = sessionStorage.getItem('pitchpilot_outline')
@@ -18,7 +32,12 @@ export default function LayoutPreviewScreen() {
       navigate('/')
       return
     }
-    setOutline(JSON.parse(stored))
+    try {
+      setOutline(JSON.parse(stored))
+    } catch {
+      sessionStorage.removeItem('pitchpilot_outline')
+      navigate('/')
+    }
   }, [navigate])
 
   const moveSlide = (index, direction) => {
@@ -45,7 +64,7 @@ export default function LayoutPreviewScreen() {
     setError('')
 
     try {
-      const refined = await refineOutline(outline, refinementPrompt)
+      const refined = await refineOutline(outline, refinementPrompt, preferences)
       setOutline(refined)
       sessionStorage.setItem('pitchpilot_outline', JSON.stringify(refined))
       setRefinementPrompt('')
@@ -62,7 +81,7 @@ export default function LayoutPreviewScreen() {
     setError('')
 
     try {
-      const presentation = await generateFullPresentation(outline)
+      const presentation = await generateFullPresentation(outline, preferences)
       sessionStorage.setItem('pitchpilot_presentation', JSON.stringify(presentation))
       navigate('/workspace')
     } catch (err) {
@@ -73,6 +92,12 @@ export default function LayoutPreviewScreen() {
   }
 
   if (!outline) return null
+
+  const updatePreferences = (nextPreferences) => {
+    const normalized = normalizePreferences(nextPreferences)
+    setPreferences(normalized)
+    sessionStorage.setItem('pitchpilot_preferences', JSON.stringify(normalized))
+  }
 
   return (
     <div>
@@ -109,6 +134,12 @@ export default function LayoutPreviewScreen() {
             </h2>
             <span className="badge badge-ai">AI Generated</span>
           </div>
+
+          <PresentationOptions
+            value={preferences}
+            onChange={updatePreferences}
+            compact
+          />
 
           {/* Outline Cards */}
           <div className="outline-list">

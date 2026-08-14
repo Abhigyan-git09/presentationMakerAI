@@ -3,10 +3,18 @@
  * Client-side PDF text extraction using pdfjs-dist.
  */
 
-import * as pdfjsLib from 'pdfjs-dist';
+let pdfLibraryPromise
 
-// Set the worker source
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+async function getPdfLibrary() {
+  if (!pdfLibraryPromise) {
+    pdfLibraryPromise = import('pdfjs-dist').then(pdfjsLib => {
+      pdfjsLib.GlobalWorkerOptions.workerSrc =
+        `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`
+      return pdfjsLib
+    })
+  }
+  return pdfLibraryPromise
+}
 
 /**
  * Extract text from a PDF file.
@@ -14,6 +22,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs
  * @returns {Promise<string>} - Extracted text content.
  */
 export async function extractTextFromPDF(file) {
+  const pdfjsLib = await getPdfLibrary();
   const arrayBuffer = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
 
