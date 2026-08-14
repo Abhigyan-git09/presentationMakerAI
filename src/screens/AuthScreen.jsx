@@ -15,12 +15,14 @@ export default function AuthScreen({ mode }) {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
 
   if (!loading && user) return <Navigate to="/" replace />
 
   const handleSubmit = async (event) => {
     event.preventDefault()
     setError('')
+    setNotice('')
 
     if (isSignup && password !== confirmPassword) {
       setError('Passwords do not match.')
@@ -30,7 +32,11 @@ export default function AuthScreen({ mode }) {
     setSubmitting(true)
     try {
       if (isSignup) {
-        await signup({ name, email, password })
+        const result = await signup({ name, email, password })
+        if (result.requiresEmailConfirmation) {
+          setNotice('Check your email to confirm your account, then return here to log in.')
+          return
+        }
       } else {
         await login({ email, password })
       }
@@ -146,6 +152,7 @@ export default function AuthScreen({ mode }) {
           )}
 
           {error && <p className="auth-error" role="alert">{error}</p>}
+          {notice && <p className="auth-notice" role="status">{notice}</p>}
 
           <button className="btn btn-primary btn-lg auth-submit" disabled={submitting || loading}>
             {submitting ? 'Please wait...' : isSignup ? 'Create account' : 'Log in'}

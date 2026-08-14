@@ -3,53 +3,32 @@
  */
 
 import { addPhotosToPresentation } from './imageService.js'
+import { getAccessToken } from './auth.js'
 import {
   getDensity,
   normalizePreferences
 } from '../config/presentationOptions.js'
 
-const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || ''
-const MODEL = import.meta.env.VITE_GEMINI_MODEL || 'gemini-3.6-flash'
-const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`
-
 async function callGemini(prompt, systemInstruction) {
-  if (!API_KEY) {
-    throw new Error('Please set VITE_GEMINI_API_KEY in your .env file')
-  }
+  const accessToken = await getAccessToken()
+  if (!accessToken) throw new Error('Your session has expired. Please log in again.')
 
-  const response = await fetch(`${API_URL}?key=${API_KEY}`, {
+  const response = await fetch('/api/generate', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      system_instruction: { parts: [{ text: systemInstruction }] },
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      generationConfig: {
-        response_mime_type: 'application/json',
-        temperature: 0.65
-      }
-    })
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({ prompt, systemInstruction }),
   })
 
+  const contentType = response.headers.get('content-type') || ''
+  const data = contentType.includes('application/json') ? await response.json() : null
   if (!response.ok) {
-    let detail = ''
-    try {
-      const body = await response.json()
-      detail = body.error?.message || ''
-    } catch {
-      // Keep a stable, user-friendly error when the API returns non-JSON text.
-    }
-    throw new Error(`Gemini request failed (${response.status})${detail ? `: ${detail}` : ''}`)
+    throw new Error(data?.error || `Presentation request failed (${response.status})`)
   }
-
-  const data = await response.json()
-  const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text
-  if (!responseText) throw new Error('Gemini returned an empty response. Please try again.')
-
-  try {
-    return JSON.parse(responseText)
-  } catch {
-    throw new Error('Gemini returned an invalid presentation. Please try generating it again.')
-  }
+  if (!data?.result) throw new Error('The server returned an empty presentation. Please try again.')
+  return data.result
 }
 
 function cleanString(value, fallback = '') {

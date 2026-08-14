@@ -1628,6 +1628,15 @@ body {
   font-size: 0.8rem;
 }
 
+.auth-notice {
+  padding: 0.7rem 0.8rem;
+  border: 1px solid rgba(74, 222, 128, 0.28);
+  border-radius: var(--radius-sm);
+  color: #bbf7d0;
+  background: rgba(20, 83, 45, 0.24);
+  font-size: 0.8rem;
+}
+
 .auth-submit {
   width: 100%;
   justify-content: center;

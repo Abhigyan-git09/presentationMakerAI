@@ -29,6 +29,13 @@ function formatSavedDate(timestamp) {
     : date.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
 }
 
+function savedTimestamp(timestamp) {
+  const date = new Date(typeof timestamp === 'number' && timestamp < 1_000_000_000_000
+    ? timestamp * 1000
+    : timestamp)
+  return Number.isNaN(date.getTime()) ? 0 : date.getTime()
+}
+
 export default function LibraryScreen() {
   const navigate = useNavigate()
   const [presentations, setPresentations] = useState([])
@@ -117,7 +124,7 @@ export default function LibraryScreen() {
       const updated = await renameSavedPresentation(id, name)
       setPresentations(items => items
         .map(item => item.id === id ? updated : item)
-        .sort((a, b) => b.updatedAt - a.updatedAt))
+        .sort((a, b) => savedTimestamp(b.updatedAt) - savedTimestamp(a.updatedAt)))
       if (sessionStorage.getItem('pitchpilot_library_id') === id) {
         sessionStorage.setItem('pitchpilot_library_name', updated.name)
       }

@@ -1,56 +1,73 @@
-const AUTH_API_URL = (import.meta.env.VITE_AUTH_API_URL || 'http://127.0.0.1:8082').replace(/\/$/, '')
+import { getSupabase } from './supabase.js'
 
-export async function accountRequest(path, options = {}) {
-  const response = await fetch(`${AUTH_API_URL}${path}`, {
-    ...options,
-    credentials: 'include',
-    headers: {
-      ...(options.body ? { 'Content-Type': 'application/json' } : {}),
-      ...options.headers,
-    },
-  })
-
-  const contentType = response.headers.get('content-type') || ''
-  const data = contentType.includes('application/json') ? await response.json() : null
-
-  if (!response.ok) {
-    const validationMessage = Array.isArray(data?.detail)
-      ? data.detail[0]?.msg?.replace(/^Value error, /, '')
-      : null
-    const error = new Error(validationMessage || data?.detail || 'Authentication request failed')
-    error.status = response.status
-    throw error
+function publicUser(user) {
+  if (!user) return null
+  return {
+    id: user.id,
+    email: user.email || '',
+    name: user.user_metadata?.name || user.email?.split('@')[0] || 'PitchPilot user',
   }
+}
 
-  return data
+function authError(error, fallback) {
+  const requestError = new Error(error?.message || fallback)
+  requestError.status = error?.status
+  return requestError
 }
 
 export async function signup({ name, email, password }) {
-  const result = await accountRequest('/auth/signup', {
-    method: 'POST',
-    body: JSON.stringify({ name, email, password }),
+  const client = getSupabase()
+  const redirectBase = typeof window === 'undefined' ? undefined : window.location.origin
+  const { data, error } = await client.auth.signUp({
+    email: email.trim().toLowerCase(),
+    password,
+    options: {
+      data: { name: name.trim() },
+      ...(redirectBase ? { emailRedirectTo: redirectBase } : {}),
+    },
   })
-  return result.user
-}
 
-export async function login({ email, password }) {
-  const result = await accountRequest('/auth/login', {
-    method: 'POST',
-    body: JSON.stringify({ email, password }),
-  })
-  return result.user
-}
-
-export async function getCurrentUser() {
-  try {
-    const result = await accountRequest('/auth/me')
-    return result.user
-  } catch (error) {
-    if (error.status === 401) return null
-    throw error
+  if (error) throw authError(error, 'Unable to create your account')
+  return {
+    user: publicUser(data.user),
+    requiresEmailConfirmation: Boolean(data.user && !data.session),
   }
 }
 
-export function logout() {
-  return accountRequest('/auth/logout', { method: 'POST' })
+export async function login({ email, password }) {
+  const client = getSupabase()
+  const { data, error } = await client.auth.signInWithPassword({
+    email: email.trim().toLowerCase(),
+    password,
+  })
+  if (error) throw authError(error, 'Unable to log in')
+  return publicUser(data.user)
+}
+
+export async function getCurrentUser() {
+  const client = getSupabase()
+  const { data, error } = await client.auth.getSession()
+  if (error) throw authError(error, 'Unable to restore your session')
+  return publicUser(data.session?.user)
+}
+
+export function onAuthStateChange(callback) {
+  const client = getSupabase()
+  const { data } = client.auth.onAuthStateChange((_event, session) => {
+    callback(publicUser(session?.user))
+  })
+  return () => data.subscription.unsubscribe()
+}
+
+export async function getAccessToken() {
+  const client = getSupabase()
+  const { data, error } = await client.auth.getSession()
+  if (error) throw authError(error, 'Unable to read your session')
+  return data.session?.access_token || ''
+}
+
+export async function logout() {
+  const client = getSupabase()
+  const { error } = await client.auth.signOut()
+  if (error) throw authError(error, 'Unable to log out')
 }

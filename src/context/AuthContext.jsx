@@ -3,6 +3,7 @@ import {
   getCurrentUser,
   login as loginRequest,
   logout as logoutRequest,
+  onAuthStateChange,
   signup as signupRequest,
 } from '../services/auth.js'
 
@@ -15,6 +16,18 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     let active = true
+    let unsubscribe = () => {}
+
+    try {
+      unsubscribe = onAuthStateChange((currentUser) => {
+        if (active) {
+          setUser(currentUser)
+          setLoading(false)
+        }
+      })
+    } catch {
+      setLoading(false)
+    }
 
     getCurrentUser()
       .then((currentUser) => {
@@ -29,6 +42,7 @@ export function AuthProvider({ children }) {
 
     return () => {
       active = false
+      unsubscribe()
     }
   }, [])
 
@@ -41,9 +55,9 @@ export function AuthProvider({ children }) {
       return authenticatedUser
     },
     async signup(account) {
-      const authenticatedUser = await signupRequest(account)
-      setUser(authenticatedUser)
-      return authenticatedUser
+      const result = await signupRequest(account)
+      if (!result.requiresEmailConfirmation) setUser(result.user)
+      return result
     },
     async logout() {
       await logoutRequest()
