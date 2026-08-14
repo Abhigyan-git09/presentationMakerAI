@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Sparkles, Upload, FileText, Presentation, MessageSquare, HelpCircle } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
+import { Sparkles, Upload, FileText, Presentation, MessageSquare, HelpCircle, Library } from 'lucide-react'
 import { generateOutline } from '../services/ai.js'
 import { extractTextFromFile } from '../services/pdfService.js'
 import UserMenu from '../components/UserMenu.jsx'
@@ -71,6 +71,9 @@ export default function InputScreen() {
       sessionStorage.setItem('pitchpilot_outline', JSON.stringify(outline))
       sessionStorage.setItem('pitchpilot_prompt', prompt)
       sessionStorage.setItem('pitchpilot_preferences', JSON.stringify(preferences))
+      sessionStorage.removeItem('pitchpilot_presentation')
+      sessionStorage.removeItem('pitchpilot_library_id')
+      sessionStorage.removeItem('pitchpilot_library_name')
       navigate('/layout')
     } catch (err) {
       setError(err.message)
@@ -96,9 +99,10 @@ export default function InputScreen() {
           PitchPilot
         </div>
         <div className="navbar-actions">
-          <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-            AI Presentation Builder
-          </span>
+          <Link to="/library" className="btn btn-ghost btn-sm">
+            <Library size={15} />
+            Library
+          </Link>
           <UserMenu />
         </div>
       </nav>

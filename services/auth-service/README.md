@@ -1,8 +1,18 @@
 # PitchPilot authentication service
 
-Small FastAPI service for email/password signup and login. Passwords are salted and
-hashed with scrypt, while authenticated sessions use opaque tokens stored as hashes
-in SQLite and delivered through HTTP-only, SameSite cookies.
+Small FastAPI service for email/password signup, login, and the account-scoped
+presentation library. Passwords are salted and hashed with scrypt, while authenticated
+sessions use opaque tokens stored as hashes in SQLite and delivered through HTTP-only,
+SameSite cookies. Saved presentations are stored only when a signed-in user explicitly
+chooses **Save to library**.
+
+## API routes
+
+- `POST /auth/signup`, `POST /auth/login`, `GET /auth/me`, `POST /auth/logout`
+- `GET /library` lists the current user's presentation summaries.
+- `POST /library` saves a presentation.
+- `GET`, `PUT`, `PATCH`, and `DELETE /library/{id}` load, update, rename, or delete a
+  presentation. Every lookup is scoped to the authenticated user.
 
 ## Local setup
 

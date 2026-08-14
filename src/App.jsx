@@ -3,6 +3,7 @@ import ProtectedRoute from './components/ProtectedRoute.jsx'
 import AuthScreen from './screens/AuthScreen.jsx'
 import InputScreen from './screens/InputScreen.jsx'
 import LayoutPreviewScreen from './screens/LayoutPreviewScreen.jsx'
+import LibraryScreen from './screens/LibraryScreen.jsx'
 import WorkspaceScreen from './screens/WorkspaceScreen.jsx'
 
 function App() {
@@ -12,6 +13,7 @@ function App() {
       <Route path="/signup" element={<AuthScreen mode="signup" />} />
       <Route path="/" element={<ProtectedRoute><InputScreen /></ProtectedRoute>} />
       <Route path="/layout" element={<ProtectedRoute><LayoutPreviewScreen /></ProtectedRoute>} />
+      <Route path="/library" element={<ProtectedRoute><LibraryScreen /></ProtectedRoute>} />
       <Route path="/workspace" element={<ProtectedRoute><WorkspaceScreen /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

@@ -2,11 +2,12 @@ import { useEffect, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import {
   Download, ArrowLeft, Send, ChevronDown, ChevronRight, HelpCircle,
-  ExternalLink, FileText, Sparkles, Image, RefreshCw
+  ExternalLink, FileText, Sparkles, Image, RefreshCw, Library, Save, X
 } from 'lucide-react'
 import { editSlide } from '../services/ai.js'
 import { addPhotosToPresentation, findPhoto } from '../services/imageService.js'
 import { exportToPPTX } from '../services/pptxService.js'
+import { createSavedPresentation, updateSavedPresentation } from '../services/library.js'
 import {
   getDensity,
   getTemplate,
@@ -37,6 +38,11 @@ export default function WorkspaceScreen() {
   const [editPrompt, setEditPrompt] = useState('')
   const [editing, setEditing] = useState(false)
   const [exporting, setExporting] = useState(false)
+  const [savingToLibrary, setSavingToLibrary] = useState(false)
+  const [libraryId, setLibraryId] = useState(() => sessionStorage.getItem('pitchpilot_library_id') || '')
+  const [libraryName, setLibraryName] = useState(() => sessionStorage.getItem('pitchpilot_library_name') || '')
+  const [showSaveDialog, setShowSaveDialog] = useState(false)
+  const [saveName, setSaveName] = useState('')
   const [loadingPhotos, setLoadingPhotos] = useState(false)
   const [refreshingPhoto, setRefreshingPhoto] = useState(false)
   const [expandedQA, setExpandedQA] = useState(new Set())
@@ -151,6 +157,36 @@ export default function WorkspaceScreen() {
     }
   }
 
+  const openSaveDialog = () => {
+    setSaveName(libraryName || presentation.title || presentation.topic || 'Untitled presentation')
+    setError('')
+    setNotice('')
+    setShowSaveDialog(true)
+  }
+
+  const handleSaveToLibrary = async () => {
+    const name = saveName.trim()
+    if (!name) return
+    setSavingToLibrary(true)
+    setError('')
+    setNotice('')
+    try {
+      const saved = libraryId
+        ? await updateSavedPresentation(libraryId, { name, presentation })
+        : await createSavedPresentation({ name, presentation })
+      setLibraryId(saved.id)
+      setLibraryName(saved.name)
+      sessionStorage.setItem('pitchpilot_library_id', saved.id)
+      sessionStorage.setItem('pitchpilot_library_name', saved.name)
+      setShowSaveDialog(false)
+      setNotice(libraryId ? 'Library copy updated successfully.' : 'Presentation saved to your library.')
+    } catch (requestError) {
+      setError(`Library save failed: ${requestError.message}`)
+    } finally {
+      setSavingToLibrary(false)
+    }
+  }
+
   const toggleQA = (index) => {
     const next = new Set(expandedQA)
     next.has(index) ? next.delete(index) : next.add(index)
@@ -181,16 +217,75 @@ export default function WorkspaceScreen() {
         </div>
       )}
 
+      {showSaveDialog && (
+        <div className="dialog-backdrop" role="presentation" onMouseDown={() => !savingToLibrary && setShowSaveDialog(false)}>
+          <section
+            className="card save-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="save-dialog-title"
+            onMouseDown={event => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="btn-icon save-dialog-close"
+              onClick={() => setShowSaveDialog(false)}
+              disabled={savingToLibrary}
+              aria-label="Close save dialog"
+            >
+              <X size={17} />
+            </button>
+            <div className="save-dialog-icon"><Library size={22} /></div>
+            <h2 id="save-dialog-title">{libraryId ? 'Update library copy' : 'Save to your library'}</h2>
+            <p>
+              {libraryId
+                ? 'This replaces the saved copy with the presentation currently in your workspace.'
+                : 'Your presentation is only added after you confirm. Nothing is saved automatically.'}
+            </p>
+            <label className="save-dialog-field">
+              <span>Presentation name</span>
+              <input
+                className="input"
+                value={saveName}
+                maxLength={120}
+                autoFocus
+                onChange={event => setSaveName(event.target.value)}
+                onKeyDown={event => event.key === 'Enter' && handleSaveToLibrary()}
+              />
+            </label>
+            <div className="save-dialog-actions">
+              <button type="button" className="btn btn-ghost" onClick={() => setShowSaveDialog(false)} disabled={savingToLibrary}>
+                Cancel
+              </button>
+              <button type="button" className="btn btn-primary" onClick={handleSaveToLibrary} disabled={savingToLibrary || !saveName.trim()}>
+                <Save size={16} />
+                {savingToLibrary ? 'Saving...' : libraryId ? 'Save changes' : 'Save presentation'}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+
       <nav className="navbar workspace-navbar">
         <Link to="/" className="navbar-logo">
           <div className="logo-icon">P</div>
           PitchPilot
         </Link>
         <div className="navbar-actions">
-          <Link to="/layout" className="btn btn-ghost btn-sm">
+          <Link to={libraryId ? '/library' : '/layout'} className="btn btn-ghost btn-sm">
             <ArrowLeft size={16} />
-            Back to Outline
+            {libraryId ? 'Back to Library' : 'Back to Outline'}
           </Link>
+          {!libraryId && (
+            <Link to="/library" className="btn btn-ghost btn-sm">
+              <Library size={15} />
+              Library
+            </Link>
+          )}
+          <button className="btn btn-ghost btn-sm" onClick={openSaveDialog} disabled={savingToLibrary}>
+            <Save size={16} />
+            {libraryId ? 'Save changes' : 'Save to library'}
+          </button>
           <button className="btn btn-primary" onClick={handleExport} disabled={exporting}>
             <Download size={16} />
             {exporting ? 'Exporting...' : 'Export PPTX'}

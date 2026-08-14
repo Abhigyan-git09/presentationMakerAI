@@ -18,6 +18,8 @@ export default function UserMenu() {
       sessionStorage.removeItem('pitchpilot_outline')
       sessionStorage.removeItem('pitchpilot_prompt')
       sessionStorage.removeItem('pitchpilot_presentation')
+      sessionStorage.removeItem('pitchpilot_library_id')
+      sessionStorage.removeItem('pitchpilot_library_name')
       navigate('/login', { replace: true })
     } catch (requestError) {
       setError(requestError.message)

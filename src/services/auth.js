@@ -1,6 +1,6 @@
 const AUTH_API_URL = (import.meta.env.VITE_AUTH_API_URL || 'http://127.0.0.1:8082').replace(/\/$/, '')
 
-async function authRequest(path, options = {}) {
+export async function accountRequest(path, options = {}) {
   const response = await fetch(`${AUTH_API_URL}${path}`, {
     ...options,
     credentials: 'include',
@@ -26,7 +26,7 @@ async function authRequest(path, options = {}) {
 }
 
 export async function signup({ name, email, password }) {
-  const result = await authRequest('/auth/signup', {
+  const result = await accountRequest('/auth/signup', {
     method: 'POST',
     body: JSON.stringify({ name, email, password }),
   })
@@ -34,7 +34,7 @@ export async function signup({ name, email, password }) {
 }
 
 export async function login({ email, password }) {
-  const result = await authRequest('/auth/login', {
+  const result = await accountRequest('/auth/login', {
     method: 'POST',
     body: JSON.stringify({ email, password }),
   })
@@ -43,7 +43,7 @@ export async function login({ email, password }) {
 
 export async function getCurrentUser() {
   try {
-    const result = await authRequest('/auth/me')
+    const result = await accountRequest('/auth/me')
     return result.user
   } catch (error) {
     if (error.status === 401) return null
@@ -52,5 +52,5 @@ export async function getCurrentUser() {
 }
 
 export function logout() {
-  return authRequest('/auth/logout', { method: 'POST' })
+  return accountRequest('/auth/logout', { method: 'POST' })
 }

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { ArrowUp, ArrowDown, Trash2, Sparkles, ArrowRight, ArrowLeft, RefreshCw } from 'lucide-react'
+import { ArrowUp, ArrowDown, Trash2, Sparkles, ArrowRight, ArrowLeft, RefreshCw, Library } from 'lucide-react'
 import { refineOutline, generateFullPresentation } from '../services/ai.js'
 import UserMenu from '../components/UserMenu.jsx'
 import PresentationOptions from '../components/PresentationOptions.jsx'
@@ -83,6 +83,8 @@ export default function LayoutPreviewScreen() {
     try {
       const presentation = await generateFullPresentation(outline, preferences)
       sessionStorage.setItem('pitchpilot_presentation', JSON.stringify(presentation))
+      sessionStorage.removeItem('pitchpilot_library_id')
+      sessionStorage.removeItem('pitchpilot_library_name')
       navigate('/workspace')
     } catch (err) {
       setError(err.message)
@@ -116,6 +118,10 @@ export default function LayoutPreviewScreen() {
           PitchPilot
         </Link>
         <div className="navbar-actions">
+          <Link to="/library" className="btn btn-ghost btn-sm">
+            <Library size={15} />
+            Library
+          </Link>
           <Link to="/" className="btn btn-ghost btn-sm">
             <ArrowLeft size={16} />
             Back
